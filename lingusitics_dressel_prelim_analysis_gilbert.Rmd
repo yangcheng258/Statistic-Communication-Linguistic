@@ -1,0 +1,171 @@
+---
+title: "Lingustics Preliminary Analysis"
+author: "Josiah Gilbert"
+date: "2023-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+library(ggpubr)
+library(table1)
+library(tidyverse)
+library(readxl)
+library(ordinal)
+library(dplyr)
+library(foreign)
+library(ggplot2)
+library(MASS)
+library(Hmisc)
+library(reshape2)
+```
+
+## 0 Reading data and cleaning
+
+```{r}
+ling <- read_xlsx("Study Responses.xlsx") %>% 
+  rename(overall_in = `in usage`,
+         gender_effect = `in usage w/ gender`,
+         area_type = `Type of area`,
+         romantic = `Romantic Partner`,
+         close = `Close friend`,
+         acquaintance = `Acquaintance/Stranger`,
+         parent_guard = `Parent or Guardian`)
+```
+
+
+
+```{r data for 2nd research question}
+ling_long_situation <- ling %>%
+  mutate(person_id = 1:nrow(ling)) %>%
+  pivot_longer(cols = c(romantic:parent_guard, Boss), names_to = "Situation", values_to = "situation_in_usage") %>% 
+  mutate(Situation = factor(Situation, levels = c("Boss", "acquaintance", "parent_guard", "close", "romantic")))
+```
+
+
+```{r data for 3rd research question}
+ling_long_word <- ling %>% 
+  mutate(person_id = 1:nrow(ling)) %>% 
+  pivot_longer(cols = Doing:Warning, names_to = "Word", values_to = "in_freq")
+```
+
+## 1 Exploratory plotting and tables
+
+```{r Yang_plot1}
+region <- ggplot( ling, aes(x=" ", y=Region,fill = Region)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+
+```
+
+
+
+```{r Yang_plot2}
+ethnicity<- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Ethnicity), position = "dodge")+
+  theme_classic()+
+  ylab("Count")+ theme(axis.text.x = element_text(angle = 45, vjust = 0.4))
+
+```
+
+
+
+
+```{r Yang_plot3}
+edu<- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Education), position = "dodge")+
+  theme_classic()+
+  ylab("Count")
+
+```
+```{r Yang_plot4}
+age <- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Age), position = "dodge")+
+  theme_classic()+
+  ylab("Count")
+
+```
+
+
+```{r Yang_plot5}
+SI <-  factor(ling_long_situation[['situation_in_usage']],labels=c("Not likely to or never  drop the 'g'", "Rarely drop the 'g' ","Sometimes drop the 'g'",  "Often drop the 'g'"  ,"Very likely to or always drop the 'g' all the time"))
+
+ling_long_situation%>% group_by(Situation, situation_in_usage) %>% 
+ggplot()+
+  geom_bar(aes(x = Situation,  fill = SI), position = "dodge")+
+  theme_classic()+
+  ylab("")+
+  labs(fill = "Frequency of dropping -g")
+
+
+```
+
+
+```{r}
+test <- ling_long_situation%>% group_by(Situation, situation_in_usage)
+```
+
+```{r Yang_plot5}
+ling%>% 
+ggplot()+
+  geom_bar(aes(x = Situation,  fill = situation_in_usage), position = "dodge")+
+  theme_classic()+
+  ylab("Frequency of dropping -g")+
+  labs(fill = "Frequency of dropping -g")
+```
+
+```{r}
+ling %>% 
+ggplot()+
+  geom_bar(aes(x = Region, fill = overall_in), position = "dodge")+
+  theme_classic()+
+  ylab("Frequency of dropping -g")+
+  labs(fill = "Frequency of dropping -g")
+```
+
+```{r}
+ling_long_situation %>% 
+  ggplot()+
+  geom_boxplot(aes(x = Situation, y = situation_in_usage))+
+  theme_classic()+
+  ylab("Frequency of dropping -g")
+```
+
+```{r}
+ling_long_word %>% 
+  ggplot()+
+  geom_boxplot(aes(x = Word, y = in_freq))+
+  theme_classic()+
+  ylab("Frequency of dropping -g")
+```
+
+```{r}
+table1(~Region + Age + Ethnicity + Education + Gender + area_type|overall_in, data = ling)
+```
+
+```{r}
+table1(~overall_in + Age + Ethnicity + Education + Gender + area_type|Region, data = ling)
+```
+
+## 2 Modeling
+
+```{r model for 1st research question}
+polr(as.factor(overall_in) ~ Region + Age + Gender + Ethnicity  +Education, data = ling)
+```
+
+```{r model for 2nd research question}
+clmm(as.factor(situation_in_usage) ~ Situation + Gender + Region + Age + overall_in + Ethnicity + (1|person_id), data = ling_long_situation)
+```
+
+
+
+```{r model for 3rd research question}
+clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word)
+```
