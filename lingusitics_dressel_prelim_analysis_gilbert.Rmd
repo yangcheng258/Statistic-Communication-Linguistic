@@ -1,0 +1,167 @@
+---
+title: "Lingustics Preliminary Analysis"
+author: "Josiah Gilbert"
+date: "2023-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(table1)
+library(tidyverse)
+library(readxl)
+library(ordinal)
+library(foreign)
+library(ggplot2)
+library(MASS)
+library(Hmisc)
+library(reshape2)
+library(scales)
+```
+
+## 0 Reading data and cleaning
+
+```{r}
+ling <- read_csv("StudyResponses.csv") %>% 
+  rename(overall_in = `in usage`,
+         gender_effect = `in usage w/ gender`,
+         area_type = `Type of area`,
+         romantic = `Romantic Partner`,
+         close = `Close friend`,
+         acquaintance = `Acquaintance/Stranger`,
+           parent_guard = `Parent/Guardian`) %>% 
+  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words")))
+```
+
+```{r}
+as.factor(ling$overall_in)
+```
+
+
+```{r data for 2nd research question}
+ling_long_situation <- ling %>%
+  mutate(person_id = 1:nrow(ling)) %>%
+  pivot_longer(cols = c(romantic:parent_guard, Boss), names_to = "Situation", values_to = "situation_in_usage") %>% 
+  mutate(Situation = factor(Situation, levels = c("Boss", "acquaintance", "parent_guard", "close", "romantic")))
+```
+
+```{r data for 3rd research question}
+ling_long_word <- ling %>% 
+  mutate(person_id = 1:nrow(ling)) %>% 
+  pivot_longer(cols = Doing:Warning, names_to = "Word", values_to = "in_freq")
+```
+
+## 1 Exploratory plotting and tables
+
+```{r}
+ling %>% 
+ggplot()+
+  geom_bar(aes(x = Region, fill = overall_in), position = "dodge")+
+  theme_classic()+
+  ylab("Frequency of dropping -g")+
+  labs(fill = "Frequency of dropping -g")
+```
+
+```{r}
+ling_long_situation %>% 
+  ggplot()+
+  geom_boxplot(aes(x = Situation, y = situation_in_usage))+
+  theme_classic()+
+  ylab("Frequency of dropping -g")
+```
+
+```{r}
+ling_long_word %>% 
+  ggplot()+
+  geom_boxplot(aes(x = Word, y = in_freq))+
+  theme_classic()+
+  ylab("Frequency of dropping -g")
+```
+
+```{r}
+ling_long_word_percent <- ling_long_word %>%
+  mutate(in_freq = factor(in_freq, levels = c("5", "4", "3", "2", "1"))) %>% 
+  group_by(Word, in_freq) %>%
+  count(name = "counts") %>% 
+  group_by(Word) %>% 
+  mutate("percent" = counts/sum(counts)) %>% 
+  ungroup() %>% 
+  mutate("percent_answers_lab" = percent(percent, accuracy = 1))
+
+
+ling_long_word_percent %>%
+  ggplot(aes(y = percent, x = Word, fill =  as.factor(in_freq)))+
+  geom_col()+
+  coord_flip()+
+  theme_minimal()+
+  scale_x_discrete()+
+  scale_fill_manual(breaks = c("5", "4", "3", "2", "1"),
+                    values = c(
+                      "5" = "darkorange3",
+                      "4" = "orange",
+                      "3" = "forestgreen",
+                      "2" = "deepskyblue",
+                      "1" = "deepskyblue4"
+                    )) +
+  geom_text(aes(label = percent_answers_lab),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            fontface = "bold") +
+  labs(title = "Frequency of dropping -g",
+       x = NULL,
+       fill = NULL) +
+   theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "top")
+
+
+
+```
+
+
+```{r}
+table1(~Region + Age + Ethnicity + Education + Gender + area_type|overall_in, data = ling)
+```
+
+```{r}
+table1(~overall_in + Age + Ethnicity + Education + Gender + area_type|Region, data = ling)
+```
+
+## 2 Modeling
+
+```{r model for 1st research question}
+polr(as.factor(overall_in) ~ Region + Age + Gender + Ethnicity  +Education, data = ling) %>% 
+  summary()
+```
+
+```{r model for 2nd research question}
+situation <- clmm(as.factor(situation_in_usage) ~ Situation + Gender + Region + Age + overall_in + Ethnicity + (1|person_id), data = ling_long_situation)
+
+intervals <- data.frame(confint(situation)) %>% 
+  rownames_to_column() %>%
+  mutate(estimate = exp(coef(situation))) %>% 
+  filter(!row_number() %in% c(1,2,3,4))
+
+colnames(intervals) <- c("variable", "lower", "upper", "estimate")
+
+intervals
+
+ggplot(intervals) + 
+  geom_errorbarh(aes(y = variable, xmin = lower, xmax = upper), height = 0.1)+
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed")+
+  theme_classic()
+```
+
+```{r}
+exp(confint(situation))
+```
+
+
+```{r model for 3rd research question}
+clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word) %>% 
+  summary()
+```
