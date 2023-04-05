@@ -33,7 +33,7 @@ ling <- read_csv("StudyResponses.csv") %>%
          close = `Close friend`,
          acquaintance = `Acquaintance/Stranger`,
            parent_guard = `Parent/Guardian`) %>% 
-  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words")))
+  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words"))) %>% subset(Region!='Do not live in the United States' ) %>% subset(Age >= 30 )
 ```
 
 ```{r}
@@ -55,6 +55,68 @@ ling_long_word <- ling %>%
 ```
 
 ## 1 Exploratory plotting and tables
+
+```{r Yang_plot1}
+region <- ggplot( ling, aes(x=" ", y=Region,fill = Region)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) + theme_void()
+
+```
+
+
+
+```{r Yang_plot2}
+ethnicity<- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Ethnicity), position = "dodge")+
+  theme_classic()+
+  ylab("Count")+ theme(axis.text.x = element_text(angle = 45, vjust = 0.4))
+
+```
+
+
+
+
+```{r Yang_plot3}
+edu<- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Education), position = "dodge")+
+  theme_classic()+
+  ylab("Count")
+edu
+```
+
+```{r Yang_plot4}
+age <- ling %>% 
+ggplot()+
+  geom_bar(aes(x = Age), position = "dodge")+
+  theme_classic()+
+  ylab("Count")
+
+```
+
+
+```{r Yang_plot5}
+SI <-  factor(ling_long_situation[['situation_in_usage']],labels=c("Not likely to or never  drop the 'g'", "Rarely drop the 'g' ","Sometimes drop the 'g'",  "Often drop the 'g'"  ,"Very likely to or always drop the 'g' all the time"))
+
+ling_long_situation%>% group_by(Situation, situation_in_usage) %>% 
+ggplot()+
+  geom_bar(aes(x = Situation,  fill = SI), position = "dodge")+
+  theme_classic()+
+  ylab("")+
+  labs(fill = "Frequency of dropping -g")
+
+
+```
+
+```{r Yang_plot5}
+ling%>% 
+ggplot()+
+  geom_bar(aes(x = Situation,  fill = situation_in_usage), position = "dodge")+
+  theme_classic()+
+  ylab("Frequency of dropping -g")+
+  labs(fill = "Frequency of dropping -g")
+```
 
 ```{r}
 ling %>% 
@@ -164,4 +226,90 @@ exp(confint(situation))
 ```{r model for 3rd research question}
 clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word) %>% 
   summary()
+```
+
+
+
+```{r interpretation for model 1}
+m1 <- polr( overall_in  ~ Region + Age + Gender + Ethnicity  + Education, data = ling , Hess = TRUE)
+ 
+
+## store table
+(ctable <- coef(summary(m1)))
+
+## calculate and store p values
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+
+## odds ratios
+Oddsratio <- exp(coef(m1))
+
+## combined table--Reg 1
+(ctable <- cbind(ctable, "p value" = p, "Odds ratio" = Oddsratio))
+
+
+
+#  convert the coefficients into odds ratios. To get the OR and confidence intervals, we just exponentiate the estimates and confidence intervals.
+ci <- confint(m1) # default method gives profiled CIs
+
+confint.default(m1) # CIs assuming normality
+## OR and CI
+OR_CI <- exp(cbind(OR = coef(m1), ci))
+
+
+
+```
+
+
+```{r interpretation for model 2}
+m2 <- clmm(as.factor(situation_in_usage) ~ Situation + Gender + Region + Age + overall_in + Ethnicity + (1|person_id), data = ling_long_situation)
+
+## store table
+(ctable2 <- coef(summary(m2)))
+
+## calculate and store p values
+#p2 <- pnorm(abs(ctable2[, "t value"]), lower.tail = FALSE) * 2
+
+## odds ratios
+Oddsratio2 <- exp(coef(m2))
+
+## combined table--Reg 1
+(ctable2 <- cbind(ctable2, "Odds ratio" = Oddsratio2))
+
+
+
+#  convert the coefficients into odds ratios. To get the OR and confidence intervals, we just exponentiate the estimates and confidence intervals.
+ci2 <- confint(m2) # default method gives profiled CIs
+
+confint.default(m2) # CIs assuming normality
+## OR and CI
+OR_CI2 <- exp(cbind(OR = coef(m2), ci2))
+```
+
+
+```{r interpretation for model 3}
+m3 <- clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word)
+
+## store table
+(ctable3 <- coef(summary(m3)))
+
+## calculate and store p values
+#p2 <- pnorm(abs(ctable2[, "t value"]), lower.tail = FALSE) * 2
+
+## odds ratios
+Oddsratio3 <- exp(coef(m3))
+
+## combined table--Reg 1
+(ctable3 <- cbind(ctable3, "Odds ratio" = Oddsratio3))
+
+
+
+#  convert the coefficients into odds ratios. To get the OR and confidence intervals, we just exponentiate the estimates and confidence intervals.
+ci3 <- confint(m3) # default method gives profiled CIs
+
+confint.default(m3) # CIs assuming normality
+## OR and CI
+OR_CI3 <- exp(cbind(OR = coef(m3), ci3))
+
+
+
 ```
