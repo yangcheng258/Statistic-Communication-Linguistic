@@ -25,19 +25,27 @@ library(scales)
 ## 0 Reading data and cleaning
 
 ```{r}
-ling <- read_csv("StudyResponses.csv") %>% 
-  rename(overall_in = `in usage`,
-         gender_effect = `in usage w/ gender`,
-         area_type = `Type of area`,
+ling <- read_csv("Study Responses (Final Fixed).csv") %>% 
+  rename(overall_in = `-in usage`,
+         gender_effect = `-in usage w/ gender`,
+         area_type = `Type of Area`,
          romantic = `Romantic Partner`,
          close = `Close friend`,
          acquaintance = `Acquaintance/Stranger`,
-           parent_guard = `Parent/Guardian`) %>% 
-  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words"))) %>% subset(Region!='Do not live in the United States' ) %>% subset(Age >= 30 )
+           parent_guard = `Parent/Guardian`) %>%
+  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words"))) %>% subset(Region!='Do not live in the United States' ) %>% subset(Age <= 30 )
+
+
+
 ```
 
 ```{r}
 as.factor(ling$overall_in)
+ling$overall_in = as.factor(ling$overall_in)
+ling$Region = as.factor(ling$Region)
+ling$Gender  = as.factor(ling$Gender)
+ling$Ethnicity = as.factor(ling$Ethnicity)
+ling$Education = as.factor(ling$Education)
 ```
 
 
@@ -60,7 +68,6 @@ ling_long_word <- ling %>%
 region <- ggplot( ling, aes(x=" ", y=Region,fill = Region)) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) + theme_void()
-
 ```
 
 
@@ -71,7 +78,6 @@ ggplot()+
   geom_bar(aes(x = Ethnicity), position = "dodge")+
   theme_classic()+
   ylab("Count")+ theme(axis.text.x = element_text(angle = 45, vjust = 0.4))
-
 ```
 
 
@@ -83,7 +89,7 @@ ggplot()+
   geom_bar(aes(x = Education), position = "dodge")+
   theme_classic()+
   ylab("Count")
-edu
+
 ```
 
 ```{r Yang_plot4}
@@ -99,7 +105,7 @@ ggplot()+
 ```{r Yang_plot5}
 SI <-  factor(ling_long_situation[['situation_in_usage']],labels=c("Not likely to or never  drop the 'g'", "Rarely drop the 'g' ","Sometimes drop the 'g'",  "Often drop the 'g'"  ,"Very likely to or always drop the 'g' all the time"))
 
-ling_long_situation%>% group_by(Situation, situation_in_usage) %>% 
+ling_long_situation %>% group_by(Situation, situation_in_usage) %>% 
 ggplot()+
   geom_bar(aes(x = Situation,  fill = SI), position = "dodge")+
   theme_classic()+
@@ -109,14 +115,6 @@ ggplot()+
 
 ```
 
-```{r Yang_plot5}
-ling%>% 
-ggplot()+
-  geom_bar(aes(x = Situation,  fill = situation_in_usage), position = "dodge")+
-  theme_classic()+
-  ylab("Frequency of dropping -g")+
-  labs(fill = "Frequency of dropping -g")
-```
 
 ```{r}
 ling %>% 
@@ -196,8 +194,8 @@ table1(~overall_in + Age + Ethnicity + Education + Gender + area_type|Region, da
 ## 2 Modeling
 
 ```{r model for 1st research question}
-polr(as.factor(overall_in) ~ Region + Age + Gender + Ethnicity  +Education, data = ling) %>% 
-  summary()
+polr(as.factor(overall_in) ~ Region + Age + Gender + Ethnicity + Education, data = ling) %>% 
+summary()
 ```
 
 ```{r model for 2nd research question}
@@ -235,27 +233,32 @@ m1 <- polr( overall_in  ~ Region + Age + Gender + Ethnicity  + Education, data =
  
 
 ## store table
-(ctable <- coef(summary(m1)))
+(ctable1 <- coef(summary(m1)))
 
 ## calculate and store p values
-p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+p <- pnorm(abs(ctable1[, "t value"]), lower.tail = FALSE) * 2
 
 ## odds ratios
 Oddsratio <- exp(coef(m1))
 
 ## combined table--Reg 1
-(ctable <- cbind(ctable, "p value" = p, "Odds ratio" = Oddsratio))
+(ctable1 <- cbind(ctable1, "p value" = p, "Odds ratio" = Oddsratio))
+
+write.table(ctable1, file = 'Table/Table1_1.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
+
 
 
 
 #  convert the coefficients into odds ratios. To get the OR and confidence intervals, we just exponentiate the estimates and confidence intervals.
-ci <- confint(m1) # default method gives profiled CIs
+ci1 <- confint(m1) # default method gives profiled CIs
 
 confint.default(m1) # CIs assuming normality
 ## OR and CI
-OR_CI <- exp(cbind(OR = coef(m1), ci))
+OR_CI1 <- exp(cbind(OR = coef(m1), ci1))
 
-
+write.table(OR_CI1, file = 'Table/Table1_2.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
 
 ```
 
@@ -283,6 +286,13 @@ ci2 <- confint(m2) # default method gives profiled CIs
 confint.default(m2) # CIs assuming normality
 ## OR and CI
 OR_CI2 <- exp(cbind(OR = coef(m2), ci2))
+
+
+write.table(ctable2, file = 'Table/Table2_1.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
+write.table(OR_CI2, file = 'Table/Table2_2.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
+
 ```
 
 
@@ -310,6 +320,9 @@ confint.default(m3) # CIs assuming normality
 ## OR and CI
 OR_CI3 <- exp(cbind(OR = coef(m3), ci3))
 
-
+write.table(ctable3, file = 'Table/Table3_1.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
+write.table(OR_CI3, file = 'Table/Table3_2.csv', col.names = TRUE,
+             row.names = TRUE, sep = ",")
 
 ```
