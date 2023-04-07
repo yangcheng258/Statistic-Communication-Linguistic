@@ -33,19 +33,43 @@ ling <- read_csv("Study Responses (Final Fixed).csv") %>%
          close = `Close friend`,
          acquaintance = `Acquaintance/Stranger`,
            parent_guard = `Parent/Guardian`) %>%
-  mutate(overall_in = factor(overall_in, levels = c("I drop the 'g' on -ing ending word multiples times a day", "I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I never drop the 'g' on -ing ending words"))) %>% subset(Region!='Do not live in the United States' ) %>% subset(Age <= 30 )
+  mutate(overall_in = factor(overall_in, levels = c("I never drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words", "I drop the 'g' on -ing ending word multiples times a day"))) %>%
+  subset(Region!='Do not live in the United States' ) %>%
+  subset(Age <= 30 )
+
+
+ling$Region = factor(ling$Region, levels = c("Northeast", "Midwest", "Southeast"))
+ling$Gender  = factor(ling$Gender)
+ling$Ethnicity = as.factor(ling$Ethnicity)
+ling$Education = as.factor(ling$Education)
+
+# removes column with long column name, and several other unneeded columns
+ling <- ling[,c(-13, -17, -29, -30)]
 
 
 
 ```
 
 ```{r}
-as.factor(ling$overall_in)
-ling$overall_in = as.factor(ling$overall_in)
-ling$Region = as.factor(ling$Region)
-ling$Gender  = as.factor(ling$Gender)
-ling$Ethnicity = as.factor(ling$Ethnicity)
-ling$Education = as.factor(ling$Education)
+table1(~Ethnicity + Education + area_type + Gender + Age + Region, data = ling)
+
+# drop non-binary individual
+# in-college vs. w/ college degree (masters + bachelors), only 1 in less than high school and in just high school
+# area_type okay, at least 5 in each category
+# Ethnicity... tempted to drop term entirely otherwise need to only use white (n=22) b/c 2 or less in all other categories
+```
+
+
+```{r}
+# table with lumped data
+ling_mod <- ling  %>% 
+  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
+  mutate(Education = case_match(Education,
+                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
+                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
+  )
+
+table1(~Ethnicity + Education + area_type + Gender + Age + Region, data = ling_mod)
 ```
 
 
@@ -71,7 +95,6 @@ region <- ggplot( ling, aes(x=" ", y=Region,fill = Region)) +
 ```
 
 
-
 ```{r Yang_plot2}
 ethnicity<- ling %>% 
 ggplot()+
@@ -79,8 +102,6 @@ ggplot()+
   theme_classic()+
   ylab("Count")+ theme(axis.text.x = element_text(angle = 45, vjust = 0.4))
 ```
-
-
 
 
 ```{r Yang_plot3}
@@ -91,6 +112,7 @@ ggplot()+
   ylab("Count")
 
 ```
+
 
 ```{r Yang_plot4}
 age <- ling %>% 
@@ -134,6 +156,55 @@ ling_long_situation %>%
 ```
 
 ```{r}
+ling_long_situation_percent <- ling_long_situation %>%
+  mutate(situation_in_usage = factor(situation_in_usage, levels = c("5", "4", "3", "2", "1"))) %>% 
+  group_by(Situation, situation_in_usage) %>%
+  count(name = "counts") %>% 
+  group_by(Situation) %>% 
+  mutate("percent" = counts/sum(counts)) %>% 
+  ungroup() %>% 
+  mutate("percent_answers_lab" = percent(percent, accuracy = 1))
+
+situation_order <- ling_long_situation_percent %>% 
+  filter(situation_in_usage == 1) %>% 
+  arrange(desc(percent)) %>% 
+  dplyr::pull(Situation)
+
+ling_long_situation_percent <- ling_long_situation_percent %>% 
+  mutate(Situation = factor(Situation, levels = situation_order))
+
+
+ling_long_situation_percent %>%
+  ggplot(aes(y = percent, x = Situation, fill =  as.factor(situation_in_usage)))+
+  geom_col()+
+  coord_flip()+
+  theme_minimal()+
+  scale_x_discrete()+
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), #"5", "4", "3", "2", "1"
+                    values = c(
+                      "5" = "darkorange3",
+                      "4" = "orange",
+                      "3" = "forestgreen",
+                      "2" = "deepskyblue",
+                      "1" = "deepskyblue4"
+                    )) +
+  # geom_text(aes(label = percent_answers_lab),
+  #           position = position_stack(vjust = 0.5),
+  #           color = "white",
+  #           fontface = "bold") +
+  labs(title = "Frequency of dropping -g by situation",
+       x = NULL,
+       fill = NULL) +
+   theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "top")
+
+
+
+```
+
+```{r}
 ling_long_word %>% 
   ggplot()+
   geom_boxplot(aes(x = Word, y = in_freq))+
@@ -151,6 +222,14 @@ ling_long_word_percent <- ling_long_word %>%
   ungroup() %>% 
   mutate("percent_answers_lab" = percent(percent, accuracy = 1))
 
+word_order <- ling_long_word_percent %>% 
+  filter(in_freq == 1) %>% 
+  arrange(desc(percent)) %>% 
+  dplyr::pull(Word)
+
+ling_long_word_percent <- ling_long_word_percent %>% 
+  mutate(Word = factor(Word, levels = word_order))
+
 
 ling_long_word_percent %>%
   ggplot(aes(y = percent, x = Word, fill =  as.factor(in_freq)))+
@@ -158,7 +237,7 @@ ling_long_word_percent %>%
   coord_flip()+
   theme_minimal()+
   scale_x_discrete()+
-  scale_fill_manual(breaks = c("5", "4", "3", "2", "1"),
+  scale_fill_manual(breaks = c("1", "2", "3", "4", "5"), #"5", "4", "3", "2", "1"
                     values = c(
                       "5" = "darkorange3",
                       "4" = "orange",
@@ -166,11 +245,11 @@ ling_long_word_percent %>%
                       "2" = "deepskyblue",
                       "1" = "deepskyblue4"
                     )) +
-  geom_text(aes(label = percent_answers_lab),
-            position = position_stack(vjust = 0.5),
-            color = "white",
-            fontface = "bold") +
-  labs(title = "Frequency of dropping -g",
+  # geom_text(aes(label = percent_answers_lab),
+  #           position = position_stack(vjust = 0.5),
+  #           color = "white",
+  #           fontface = "bold") +
+  labs(title = "Frequency of dropping -g by word",
        x = NULL,
        fill = NULL) +
    theme(axis.text.x = element_blank(),
@@ -194,12 +273,31 @@ table1(~overall_in + Age + Ethnicity + Education + Gender + area_type|Region, da
 ## 2 Modeling
 
 ```{r model for 1st research question}
-polr(as.factor(overall_in) ~ Region + Age + Gender + Ethnicity + Education, data = ling) %>% 
-summary()
+ling_mod <- ling  %>% 
+  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
+  mutate(Education = case_match(Education,
+                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
+                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
+  )
+
+
+polr(as.factor(overall_in) ~ Region  + Age + Gender + Education  + area_type, data = ling_mod)
+
+#best model just contains Region
+
 ```
 
 ```{r model for 2nd research question}
-situation <- clmm(as.factor(situation_in_usage) ~ Situation + Gender + Region + Age + overall_in + Ethnicity + (1|person_id), data = ling_long_situation)
+ling_sit_mod <- ling_long_situation  %>% 
+  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
+  mutate(Education = case_match(Education,
+                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
+                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
+  )
+
+situation <- clmm(as.factor(situation_in_usage) ~ Situation + Region + Gender + Age + (1|person_id), data = ling_sit_mod)
+
+summary(situation)
 
 intervals <- data.frame(confint(situation)) %>% 
   rownames_to_column() %>%
@@ -217,12 +315,26 @@ ggplot(intervals) +
 ```
 
 ```{r}
+situation <- clmm(as.factor(situation_in_usage) ~ Situation  + (1|person_id), data = ling_sit_mod)
+
+summary(situation)
+```
+
+
+```{r}
 exp(confint(situation))
 ```
 
 
 ```{r model for 3rd research question}
-clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word) %>% 
+ling_word_mod <- ling_long_word  %>% 
+  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
+  mutate(Education = case_match(Education,
+                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
+                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
+  )
+
+clmm(as.factor(in_freq) ~ Word + (1|person_id), data = ling_word_mod) %>% 
   summary()
 ```
 
