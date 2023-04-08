@@ -1,18 +1,14 @@
 "Value","Std. Error","t value","p value","Odds ratio"
-"RegionNortheast",3.30598040789112,2.8568983348088,1.15719217852825,0.24719385256714,27.2752693739212
-"RegionSoutheast",1.9712772019791,3.16112311615232,0.623600261535688,0.532890138821761,7.17984074160442
-"Age",-0.413993336045981,0.392025918259849,-1.05603562612299,0.290951938710114,0.661005356160535
-"GenderMale",0.840566961801651,1.24091622632232,0.677376074203513,0.498167374696896,2.31768064073898
-"GenderNon-Binary",18.4189537708647,2.26394728205328e-05,813576.973142222,0,99827451.7272297
-"EthnicityAsian, Native Hawaiian or Other Pacific Islander",7.41609304799245,69.4127712899874,0.106840469126496,0.914915541482247,1662.52539565027
-"EthnicityAsian, White",10.7237247057363,0.000480815231892823,22303.2133643526,0,45420.7671537651
-"EthnicityBlack or African American, Hispanic or Latino, White",10.1342776428529,140.842999237469,0.0719544293839269,0.942638173879892,25191.8962109893
-"EthnicityHispanic or Latino",8.57860595225993,100.261293400269,0.0855624903821253,0.931814217406656,5316.68863898042
-"EthnicityHispanic or Latino, White",-4.32820722061207,2.23367124651623,-1.93771004903368,0.0526586072392807,0.0131911751710909
-"EthnicityWhite",-1.60222907150057,1.39729096628866,-1.14666816730108,0.251518791516213,0.201446977435491
-"EducationCurrently in College",-0.875650506366452,1.87860357763733,-0.466117767894244,0.641131205862279,0.416590936461014
-"EducationMasters Degree",2.68512081958664,2.00959799968992,1.33614823462253,0.181500826909425,14.6599724850843
-"I drop the 'g' on -ing ending word multiples times a day|I often drop the 'g' on -ing ending words",-12.0912944024023,8.24967823249377,-1.4656686069012,0.14273859059473,27.2752693739212
-"I often drop the 'g' on -ing ending words|I sometimes drop the 'g' on -ing ending words",-8.34491401873942,8.11258892965674,-1.02863760152242,0.303650001666746,7.17984074160442
-"I sometimes drop the 'g' on -ing ending words|I rarely drop the 'g' on -ing ending words",-6.0242853870152,8.03805023798174,-0.749470979734487,0.453573383563653,0.661005356160535
-"I rarely drop the 'g' on -ing ending words|I never drop the 'g' on -ing ending words",28451.0389998589,8.03805023798174,3539.5448096879,0,2.31768064073898
+"RegionNortheast"," 1.47e+00"," 2.60e+00"," 5.64e-01"," 5.73e-01"," 4.34e+00"
+"RegionSoutheast"," 1.40e-01"," 2.89e+00"," 4.86e-02"," 9.61e-01"," 1.15e+00"
+"Age","-2.98e-01"," 3.28e-01","-9.09e-01"," 3.63e-01"," 7.42e-01"
+"GenderMale","-5.22e-01"," 1.10e+00","-4.75e-01"," 6.35e-01"," 5.93e-01"
+"GenderNon-Binary"," 1.73e+01"," 3.77e-06"," 4.60e+06"," 0.00e+00"," 3.37e+07"
+"EducationCurrently in College","-1.36e+00"," 1.51e+00","-9.01e-01"," 3.68e-01"," 2.56e-01"
+"EducationHigh School"," 1.60e+01"," 4.14e-06"," 3.86e+06"," 0.00e+00"," 8.70e+06"
+"EducationMasters Degree"," 1.05e+00"," 1.81e+00"," 5.79e-01"," 5.62e-01"," 2.85e+00"
+"EducationSome High School, no Diploma"," 1.58e+01"," 4.93e-06"," 3.21e+06"," 0.00e+00"," 7.43e+06"
+"I drop the 'g' on -ing ending word multiples times a day|I often drop the 'g' on -ing ending words","-1.03e+01"," 6.97e+00","-1.47e+00"," 1.41e-01"," 4.34e+00"
+"I often drop the 'g' on -ing ending words|I sometimes drop the 'g' on -ing ending words","-6.96e+00"," 6.84e+00","-1.02e+00"," 3.09e-01"," 1.15e+00"
+"I sometimes drop the 'g' on -ing ending words|I rarely drop the 'g' on -ing ending words","-5.10e+00"," 6.79e+00","-7.51e-01"," 4.53e-01"," 7.42e-01"
+"I rarely drop the 'g' on -ing ending words|I never drop the 'g' on -ing ending words"," 2.69e+03"," 6.79e+00"," 3.95e+02"," 0.00e+00"," 5.93e-01"
