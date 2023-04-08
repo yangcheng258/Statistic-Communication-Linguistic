@@ -20,12 +20,14 @@ library(MASS)
 library(Hmisc)
 library(reshape2)
 library(scales)
+library(AER)
+library(modelsummary)
 ```
 
 ## 0 Reading data and cleaning
 
 ```{r}
-ling <- read_csv("Study Responses (Final Fixed).csv") %>% 
+ling_full <- read_csv("Study Responses (Final Fixed).csv") %>% 
   rename(overall_in = `-in usage`,
          gender_effect = `-in usage w/ gender`,
          area_type = `Type of Area`,
@@ -33,18 +35,38 @@ ling <- read_csv("Study Responses (Final Fixed).csv") %>%
          close = `Close friend`,
          acquaintance = `Acquaintance/Stranger`,
            parent_guard = `Parent/Guardian`) %>%
-  mutate(overall_in = factor(overall_in, levels = c("I never drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words", "I drop the 'g' on -ing ending word multiples times a day"))) %>%
-  subset(Region!='Do not live in the United States' ) %>%
-  subset(Age <= 30 )
+  mutate(overall_in = factor(overall_in, levels = c("I never drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words", "I drop the 'g' on -ing ending word multiples times a day")))
+
+# removes column with long column name, and several other unneeded columns
+ling_full <- ling_full[,c(-13, -17, -29, -30)]
 
 
-ling$Region = factor(ling$Region, levels = c("Northeast", "Midwest", "Southeast"))
+ling <- ling_full  %>% 
+  filter(Gender != "Non-Binary" & Region %in% c("Northeast", "Southeast")) %>% 
+  mutate(Education = case_match(Education,
+                                c("Currently in College", "Some High School, no Diploma",
+                                  "High School") ~ "No degree",
+                                c("Masters Degree", "Bachelors Degree", "PhD") ~ "Degree")) %>% 
+  mutate(overall_in = case_match(as.character(overall_in),
+                                c("I never drop the 'g' on -ing ending words",
+                                  "I rarely drop the 'g' on -ing ending words")
+                                ~ "I rarely drop the 'g' on -ing ending words",
+                                "I sometimes drop the 'g' on -ing ending words"
+                                ~ "I sometimes drop the 'g' on -ing ending words",
+                                c("I often drop the 'g' on -ing ending words",
+                                  "I drop the 'g' on -ing ending word multiples times a day") ~ 
+                                  "I often drop the 'g' on -ing ending words")) %>% 
+  mutate(overall_in = factor(overall_in, levels = c("I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words"))) %>% 
+  mutate(Ethnicity = case_match(Ethnicity, "White" ~ "White", .default = "Minority"))
+
+
+
+ling$Region = factor(ling$Region, levels = c("Northeast", "Southeast"))
 ling$Gender  = factor(ling$Gender)
 ling$Ethnicity = as.factor(ling$Ethnicity)
 ling$Education = as.factor(ling$Education)
 
-# removes column with long column name, and several other unneeded columns
-ling <- ling[,c(-13, -17, -29, -30)]
+
 
 
 
@@ -62,22 +84,31 @@ table1(~Ethnicity + Education + area_type + Gender + Age + Region, data = ling)
 
 ```{r}
 # table with lumped data
-ling_mod <- ling  %>% 
-  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
-  mutate(Education = case_match(Education,
-                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
-                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
-  )
+table1(~overall_in|Region, data = ling_mod)
 
-table1(~Ethnicity + Education + area_type + Gender + Age + Region, data = ling_mod)
+#combine never and rarely, combine often and drop
+
+ling_full$overall_in
+
+```
+
+
+```{r}
+boxplot(ling$Age)
 ```
 
 
 ```{r data for 2nd research question}
-ling_long_situation <- ling %>%
-  mutate(person_id = 1:nrow(ling)) %>%
+ling_long_situation <- ling_full %>%
+  mutate(person_id = 1:nrow(ling_full)) %>%
   pivot_longer(cols = c(romantic:parent_guard, Boss), names_to = "Situation", values_to = "situation_in_usage") %>% 
-  mutate(Situation = factor(Situation, levels = c("Boss", "acquaintance", "parent_guard", "close", "romantic")))
+  filter(is.na(situation_in_usage) == FALSE) %>% 
+  mutate(Situation = case_match(Situation, "Boss"~"Boss",
+                                "acquaintance" ~ "Acquaintance",
+                                "parent_guard" ~ "Parent or Guardian",
+                                "close" ~ "Close friend",
+                                "romantic" ~ "Romantic partner")) %>% 
+  mutate(Situation = factor(Situation, levels = c("Boss", "Acquaintance", "Parent or Guardian", "Close friend", "Romantic partner")))
 ```
 
 ```{r data for 3rd research question}
@@ -148,12 +179,93 @@ ggplot()+
 ```
 
 ```{r}
-ling_long_situation %>% 
-  ggplot()+
-  geom_boxplot(aes(x = Situation, y = situation_in_usage))+
-  theme_classic()+
-  ylab("Frequency of dropping -g")
+ling_region <- ling %>%
+  group_by(Region, overall_in) %>%
+  count(name = "counts") %>% 
+  group_by(Region) %>% 
+  mutate("percent" = counts/sum(counts)) %>% 
+  ungroup() %>% 
+  mutate("percent_answers_lab" = percent(percent, accuracy = 1)) %>% 
+  mutate(overall_in = factor(overall_in, levels = c("I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words")))
+
+region_order <- ling_region %>% 
+  filter(overall_in == 1) %>% 
+  arrange(desc(percent)) %>% 
+  dplyr::pull(Region)
+
+ling_region <- ling_region %>% 
+  mutate(Word = factor(Region, levels = region_order))
+
+
+ling_region %>%
+  ggplot(aes(y = percent, x = Region, fill =  as.factor(overall_in)))+
+  geom_col()+
+  coord_flip()+
+  theme_minimal()+
+  scale_x_discrete()+
+  scale_fill_manual(breaks = c("I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words"), #"5", "4", "3", "2", "1"
+                    values = c(
+                      "I often drop the 'g' on -ing ending words" = "darkorange3",
+                      "I sometimes drop the 'g' on -ing ending words" = "forestgreen",
+                      "I rarely drop the 'g' on -ing ending words" = "deepskyblue4"
+                    )) +
+  # geom_text(aes(label = percent_answers_lab),
+  #           position = position_stack(vjust = 0.5),
+  #           color = "white",
+  #           fontface = "bold") +
+  labs(title = "Frequency of dropping the 'g' in -ing endings by region",
+       x = NULL,
+       fill = NULL) +
+   theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "top")
+
 ```
+
+```{r}
+ling_area <- ling %>%
+  group_by(area_type, overall_in) %>%
+  count(name = "counts") %>% 
+  group_by(area_type) %>% 
+  mutate("percent" = counts/sum(counts)) %>% 
+  ungroup() %>% 
+  mutate("percent_answers_lab" = percent(percent, accuracy = 1)) %>% 
+  mutate(overall_in = factor(overall_in, levels = c("I often drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I rarely drop the 'g' on -ing ending words")))
+
+
+ling_area <- ling_area %>% 
+  mutate(area_type = factor(area_type, levels = c("Suburban", "Urban", "Rural")))
+
+
+ling_area %>%
+  ggplot(aes(y = percent, x = area_type, fill =  as.factor(overall_in)))+
+  geom_col()+
+  coord_flip()+
+  theme_minimal()+
+  scale_x_discrete()+
+  scale_fill_manual(breaks = c("I rarely drop the 'g' on -ing ending words", "I sometimes drop the 'g' on -ing ending words", "I often drop the 'g' on -ing ending words"), #"5", "4", "3", "2", "1"
+                    values = c(
+                      "I often drop the 'g' on -ing ending words" = "darkorange3",
+                      "I sometimes drop the 'g' on -ing ending words" = "forestgreen",
+                      "I rarely drop the 'g' on -ing ending words" = "deepskyblue4"
+                    )) +
+  # geom_text(aes(label = percent_answers_lab),
+  #           position = position_stack(vjust = 0.5),
+  #           color = "white",
+  #           fontface = "bold") +
+  labs(title = "Frequency of dropping the 'g' in -ing endings by type of area",
+       x = NULL,
+       fill = NULL) +
+   theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid = element_blank(),
+        legend.position = "top")
+
+```
+
+
+
 
 ```{r}
 ling_long_situation_percent <- ling_long_situation %>%
@@ -192,7 +304,7 @@ ling_long_situation_percent %>%
   #           position = position_stack(vjust = 0.5),
   #           color = "white",
   #           fontface = "bold") +
-  labs(title = "Frequency of dropping -g by situation",
+  labs(title = "Frequency of dropping the 'g' in -ing endings by conversation situation",
        x = NULL,
        fill = NULL) +
    theme(axis.text.x = element_blank(),
@@ -249,7 +361,7 @@ ling_long_word_percent %>%
   #           position = position_stack(vjust = 0.5),
   #           color = "white",
   #           fontface = "bold") +
-  labs(title = "Frequency of dropping -g by word",
+  labs(title = "Frequency of dropping the 'g' in -ing endings by word",
        x = NULL,
        fill = NULL) +
    theme(axis.text.x = element_blank(),
@@ -273,69 +385,174 @@ table1(~overall_in + Age + Ethnicity + Education + Gender + area_type|Region, da
 ## 2 Modeling
 
 ```{r model for 1st research question}
-ling_mod <- ling  %>% 
-  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
-  mutate(Education = case_match(Education,
-                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
-                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
-  )
+
+model1 <- polr(as.factor(overall_in) ~ Region + Age + area_type + Gender + Ethnicity + Education, Hess=TRUE, data = ling)
+
+summary(model1)
 
 
-polr(as.factor(overall_in) ~ Region  + Age + Gender + Education  + area_type, data = ling_mod)
+# finds p-values, polr doesn't automatically find them
+tidy_custom.polr <- function(x, ...) {
+  s <- coeftest(x)
+  out <- data.frame(
+    term = row.names(s),
+    p.value = s[, "Pr(>|z|)"])
+  out
+}
 
-#best model just contains Region
+p_values <- tidy_custom.polr(model1)[1:7,]
 
+rownames(p_values) <- NULL
+
+p_values
 ```
 
-```{r model for 2nd research question}
-ling_sit_mod <- ling_long_situation  %>% 
-  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
-  mutate(Education = case_match(Education,
-                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
-                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
-  )
-
-situation <- clmm(as.factor(situation_in_usage) ~ Situation + Region + Gender + Age + (1|person_id), data = ling_sit_mod)
-
-summary(situation)
-
-intervals <- data.frame(confint(situation)) %>% 
+```{r forest plot for first model}
+intervals_1 <- data.frame(confint(model1)) %>% 
   rownames_to_column() %>%
-  mutate(estimate = exp(coef(situation))) %>% 
-  filter(!row_number() %in% c(1,2,3,4))
+  mutate(estimate = exp(coef(model1)))
 
-colnames(intervals) <- c("variable", "lower", "upper", "estimate")
+colnames(intervals_1) <- c("variable", "lower", "upper", "estimate")
 
-intervals
+intervals_renamed_1 <- intervals_1 %>% 
+  mutate(variable = case_match(variable, "EducationNo degree" ~ "Degree not completed vs. Degree",
+                               "EthnicityWhite" ~ "White vs. Minority",
+                               "area_typeUrban" ~ "Urban vs. Rural",
+                               "area_typeSuburban" ~ "Suburban vs. Rural",
+                               "RegionSoutheast" ~ "Southeast vs. Northeast",
+                               "GenderMale" ~ "Male vs. Female",
+                               "Age" ~ "Age"))
 
-ggplot(intervals) + 
+# untransformed forest plot
+
+ggplot(intervals_renamed_1) + 
   geom_errorbarh(aes(y = variable, xmin = lower, xmax = upper), height = 0.1)+
   geom_vline(xintercept = 0, color = "black", linetype = "dashed")+
-  theme_classic()
+  theme_classic()+
+  ylab("Variable")+
+  ggtitle("Confidence intervals for variables")
+
+# transformed forest plot
+
+ggplot(intervals_renamed_1) + 
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Variable")+
+  ggtitle("Confidence intervals for variables")
+
+# transformed zoomed in forest plot
+
+ggplot(intervals_renamed_1 %>% filter(variable == "Urban vs. Rural"| variable == "Suburban vs. Rural" | variable == "Male vs. Female" | variable == "Degree not completed vs. Degree"|variable == "Age")) + 
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Variable")+
+  ggtitle("Confidence intervals (detail) for variables")
+
 ```
 
-```{r}
-situation <- clmm(as.factor(situation_in_usage) ~ Situation  + (1|person_id), data = ling_sit_mod)
 
-summary(situation)
+```{r model for 2nd research question}
+model2 <- clmm(as.factor(situation_in_usage) ~ Situation + (1|person_id), data = ling_long_situation)
+
+summary(model2)
+
+intervals_2 <- data.frame(confint(model2)) %>% 
+  rownames_to_column() %>%
+  mutate(estimate = exp(coef(model2))) %>% 
+  filter(!row_number() %in% c(1,2,3,4))
+
+colnames(intervals_2) <- c("variable", "lower", "upper", "estimate")
+
+intervals_renamed_2 <- intervals_2 %>% 
+  mutate(variable = case_match(variable, "SituationAcquaintance" ~ "Acquaintance vs. Boss",
+                               "SituationParent or Guardian" ~ "Parent or Guardian vs. Boss",
+                               "SituationClose friend" ~ "Close friend vs. Boss",
+                               "SituationRomantic partner" ~ "Romantic partner vs. Boss")) %>% 
+  mutate(variable = factor(variable, levels = c("Romantic partner vs. Boss", "Close friend vs. Boss",  "Parent or Guardian vs. Boss", "Acquaintance vs. Boss")))
+
+# untransformed forest plot
+
+ggplot(intervals_renamed_2) + 
+  geom_errorbarh(aes(y = variable, xmin = lower, xmax = upper), height = 0.1)+
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Situation")+
+  ggtitle("Confidence intervals for situations")
+
+# transformed forest plots
+
+ggplot(intervals_renamed_2) + 
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Situation")+
+  ggtitle("Confidence interval situations")
+
+# zoomed in transformed forest plot
+
+ggplot(intervals_renamed_2 %>% filter(variable == "Acquaintance vs. Boss")) + 
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Situation")+
+  ggtitle("Confidence interval (detail) for Acquaintance vs. Boss")
+
+
+intervals
 ```
 
+```{r forest plot for model 3}
+intervals_3 <- data.frame(confint(model3)) %>% 
+  rownames_to_column() %>%
+  mutate(estimate = exp(coef(model3))) %>% 
+  filter(!row_number() %in% c(1,2,3,4))
 
-```{r}
-exp(confint(situation))
-```
+colnames(intervals_3) <- c("variable", "lower", "upper", "estimate")
+
+intervals_renamed_3 <- intervals_3 %>% 
+  mutate(variable = case_match(variable, "WordAnything" ~ "Anything vs. Admitting",
+                               "WordDeveloping" ~ "Developing vs. Admitting",
+                               "WordDoing" ~ "Doing vs. Admitting",
+                               "WordEnding" ~ "Ending vs. Admitting",
+                               "WordFeeling" ~ "Feeling vs. Admitting",
+                               "WordNothing" ~ "Nothing vs. Admitting",
+                               "WordShopping" ~ "Shopping vs. Admitting",
+                               "WordSomething" ~ "Something vs. Admitting",
+                               "WordStruggling" ~ "Struggling vs. Admitting",
+                               "WordTalking" ~ "Talking vs. Admitting",
+                               "WordWarning" ~ "Warning vs. Admitting"))
+
+# untransformed forest plot
+
+ggplot(intervals_renamed_3) + 
+  geom_errorbarh(aes(y = variable, xmin = lower, xmax = upper), height = 0.1)+
+  geom_vline(xintercept = 0, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Words")+
+  ggtitle("Confidence intervals for words")
+
+# transformed forest plot
+
+ggplot(intervals_renamed_3) + 
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Words")+
+  ggtitle("Confidence intervals for words")
+
+# zoomed in transformed forest plot
+
+ggplot(intervals_renamed_3 %>% filter(variable == "Warning vs. Admitting" | variable  == "Ending vs. Admitting" | variable == "Developing vs. Admitting"| variable == "Anything vs. Admitting")) +
+  geom_errorbarh(aes(y = variable, xmin = exp(lower), xmax = exp(upper)), height = 0.1)+
+  geom_vline(xintercept = 1, color = "black", linetype = "dashed")+
+  theme_classic()+
+  ylab("Words")+
+  ggtitle("Confidence intervals (detail) for words")
 
 
-```{r model for 3rd research question}
-ling_word_mod <- ling_long_word  %>% 
-  filter(Gender != "Non-Binary" & Region != "Midwest") %>% 
-  mutate(Education = case_match(Education,
-                                c("Currently in College", "Some High School, no Diploma", "High School") ~ "No degree",
-                                c("Masters Degree", "Bachelors Degree") ~ "Degree")
-  )
-
-clmm(as.factor(in_freq) ~ Word + (1|person_id), data = ling_word_mod) %>% 
-  summary()
+intervals_3
 ```
 
 
