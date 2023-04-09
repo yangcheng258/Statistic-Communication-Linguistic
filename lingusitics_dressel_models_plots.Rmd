@@ -120,7 +120,7 @@ ling_long_word <- ling %>%
 ## 1 Exploratory plotting and tables
 
 ```{r Yang_plot1}
-region <- ggplot( ling, aes(x=" ", y=Region,fill = Region)) +
+region <- ggplot( ling_mod, aes(x=" ", y=Region,fill = Region)) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) + theme_void()
 ```
@@ -136,7 +136,7 @@ ggplot()+
 
 
 ```{r Yang_plot3}
-edu<- ling %>% 
+edu<- ling  %>% 
 ggplot()+
   geom_bar(aes(x = Education), position = "dodge")+
   theme_classic()+
@@ -146,7 +146,7 @@ ggplot()+
 
 
 ```{r Yang_plot4}
-age <- ling %>% 
+age <- ling_mod %>% 
 ggplot()+
   geom_bar(aes(x = Age), position = "dodge")+
   theme_classic()+
@@ -158,7 +158,7 @@ ggplot()+
 ```{r Yang_plot5}
 SI <-  factor(ling_long_situation[['situation_in_usage']],labels=c("Not likely to or never  drop the 'g'", "Rarely drop the 'g' ","Sometimes drop the 'g'",  "Often drop the 'g'"  ,"Very likely to or always drop the 'g' all the time"))
 
-ling_long_situation %>% group_by(Situation, situation_in_usage) %>% 
+plot5 <- ling_long_situation %>% group_by(Situation, situation_in_usage) %>% 
 ggplot()+
   geom_bar(aes(x = Situation,  fill = SI), position = "dodge")+
   theme_classic()+
@@ -170,7 +170,7 @@ ggplot()+
 
 
 ```{r}
-ling %>% 
+plotbyRegion <- ling %>% 
 ggplot()+
   geom_bar(aes(x = Region, fill = overall_in), position = "dodge")+
   theme_classic()+
@@ -196,8 +196,7 @@ region_order <- ling_region %>%
 ling_region <- ling_region %>% 
   mutate(Word = factor(Region, levels = region_order))
 
-
-ling_region %>%
+ ling_region %>%
   ggplot(aes(y = percent, x = Region, fill =  as.factor(overall_in)))+
   geom_col()+
   coord_flip()+
@@ -456,7 +455,7 @@ ggplot(intervals_renamed_1 %>% filter(variable == "Urban vs. Rural"| variable ==
 ```{r model for 2nd research question}
 model2 <- clmm(as.factor(situation_in_usage) ~ Situation + (1|person_id), data = ling_long_situation)
 
-summary(model2)
+#summary(model2)
 
 intervals_2 <- data.frame(confint(model2)) %>% 
   rownames_to_column() %>%
@@ -558,7 +557,7 @@ intervals_3
 
 
 ```{r interpretation for model 1}
-m1 <- polr( overall_in  ~ Region + Age + Gender + Ethnicity  + Education, data = ling , Hess = TRUE)
+m1 <- model1
  
 
 ## store table
@@ -593,7 +592,7 @@ write.table(OR_CI1, file = 'Table/Table1_2.csv', col.names = TRUE,
 
 
 ```{r interpretation for model 2}
-m2 <- clmm(as.factor(situation_in_usage) ~ Situation + Gender + Region + Age + overall_in + Ethnicity + (1|person_id), data = ling_long_situation)
+m2 <- model2 
 
 ## store table
 (ctable2 <- coef(summary(m2)))
@@ -626,7 +625,7 @@ write.table(OR_CI2, file = 'Table/Table2_2.csv', col.names = TRUE,
 
 
 ```{r interpretation for model 3}
-m3 <- clmm(as.factor(in_freq) ~ Word + Gender + Region + Age + Ethnicity + Education + overall_in + (1|person_id), data = ling_long_word)
+m3 <- clmm(as.factor(in_freq) ~ Word + (1|person_id), data = ling_long_word)
 
 ## store table
 (ctable3 <- coef(summary(m3)))

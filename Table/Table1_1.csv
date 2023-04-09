@@ -1,14 +1,10 @@
 "Value","Std. Error","t value","p value","Odds ratio"
-"RegionNortheast"," 1.47e+00"," 2.60e+00"," 5.64e-01"," 5.73e-01"," 4.34e+00"
-"RegionSoutheast"," 1.40e-01"," 2.89e+00"," 4.86e-02"," 9.61e-01"," 1.15e+00"
-"Age","-2.98e-01"," 3.28e-01","-9.09e-01"," 3.63e-01"," 7.42e-01"
-"GenderMale","-5.22e-01"," 1.10e+00","-4.75e-01"," 6.35e-01"," 5.93e-01"
-"GenderNon-Binary"," 1.73e+01"," 3.77e-06"," 4.60e+06"," 0.00e+00"," 3.37e+07"
-"EducationCurrently in College","-1.36e+00"," 1.51e+00","-9.01e-01"," 3.68e-01"," 2.56e-01"
-"EducationHigh School"," 1.60e+01"," 4.14e-06"," 3.86e+06"," 0.00e+00"," 8.70e+06"
-"EducationMasters Degree"," 1.05e+00"," 1.81e+00"," 5.79e-01"," 5.62e-01"," 2.85e+00"
-"EducationSome High School, no Diploma"," 1.58e+01"," 4.93e-06"," 3.21e+06"," 0.00e+00"," 7.43e+06"
-"I drop the 'g' on -ing ending word multiples times a day|I often drop the 'g' on -ing ending words","-1.03e+01"," 6.97e+00","-1.47e+00"," 1.41e-01"," 4.34e+00"
-"I often drop the 'g' on -ing ending words|I sometimes drop the 'g' on -ing ending words","-6.96e+00"," 6.84e+00","-1.02e+00"," 3.09e-01"," 1.15e+00"
-"I sometimes drop the 'g' on -ing ending words|I rarely drop the 'g' on -ing ending words","-5.10e+00"," 6.79e+00","-7.51e-01"," 4.53e-01"," 7.42e-01"
-"I rarely drop the 'g' on -ing ending words|I never drop the 'g' on -ing ending words"," 2.69e+03"," 6.79e+00"," 3.95e+02"," 0.00e+00"," 5.93e-01"
+"RegionSoutheast",2.47037695898629,1.05984367063751,2.33088806153866,0.0197592629605783,11.8269042693061
+"Age",-0.175417222797362,0.0846444589817357,-2.07240054349231,0.0382281027298569,0.839106853216759
+"area_typeSuburban",-3.34163341365503,1.64970692562529,-2.02559215927911,0.0428065956872136,0.035379121758848
+"area_typeUrban",-1.02713626528514,1.52634208948801,-0.672939750766933,0.500985621741612,0.358030799096835
+"GenderMale",-2.08566907375366,1.37789820886494,-1.51365976117478,0.130112155578074,0.124223977351722
+"EthnicityWhite",1.2455591248481,0.944107840865936,1.31929751129455,0.187069669517957,3.47487714643563
+"EducationNo degree",-0.46985896692887,1.21978976922622,-0.385196677970932,0.700091704414189,0.625090420488102
+"I rarely drop the 'g' on -ing ending words|I sometimes drop the 'g' on -ing ending words",-6.27994588135843,3.43788812242061,-1.82668709909522,0.0677468290719783,11.8269042693061
+"I sometimes drop the 'g' on -ing ending words|I often drop the 'g' on -ing ending words",-4.20822432581874,3.30200002348383,-1.27444709142636,0.202505012139063,0.839106853216759
